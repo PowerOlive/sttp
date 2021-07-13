@@ -120,7 +120,13 @@ class OpenTracingBackendTest extends AnyFlatSpec with Matchers with BeforeAndAft
     val response = basicRequest.post(uri"http://stub/echo").send(backend)
     response.code shouldBe StatusCode.Ok
 
-    tracer.finishedSpans().asScala.head.tags().asScala(Tags.HTTP_STATUS.getKey) shouldBe StatusCode.Ok.code
+    tracer
+      .finishedSpans()
+      .asScala
+      .head
+      .tags()
+      .asScala(Tags.HTTP_STATUS.getKey)
+      .asInstanceOf[Int] shouldBe StatusCode.Ok.code
   }
 
   it should "add logs if response is error" in {
@@ -148,7 +154,7 @@ class OpenTracingBackendTest extends AnyFlatSpec with Matchers with BeforeAndAft
     tags(Tags.HTTP_METHOD.getKey) shouldBe Method.POST.method
     tags(Tags.HTTP_URL.getKey) shouldBe url.toJavaUri.toString
     tags(Tags.SPAN_KIND.getKey) shouldBe Tags.SPAN_KIND_CLIENT
-    tags(Tags.COMPONENT.getKey) shouldBe "sttp2-client"
+    tags(Tags.COMPONENT.getKey) shouldBe "sttp3-client"
   }
 
   it should "be able to adjust span" in {

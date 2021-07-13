@@ -1,20 +1,18 @@
 package sttp.client3.testing.streaming
 
-import org.scalatest.freespec.AsyncFreeSpecLike
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterAll, SuiteMixin}
-import sttp.capabilities.{Effect, Streams}
+import sttp.capabilities.Streams
 import sttp.client3._
 import sttp.client3.internal.Utf8
-import sttp.model.sse.ServerSentEvent
 import sttp.client3.testing.HttpTest.endpoint
 import sttp.client3.testing.streaming.StreamingTest._
 import sttp.client3.testing.{ConvertToFuture, ToFutureWrapper}
+import sttp.model.sse.ServerSentEvent
 
-// TODO: change to `extends AsyncFreeSpec` when https://github.com/scalatest/scalatest/issues/1802 is fixed
 abstract class StreamingTest[F[_], S]
-    extends SuiteMixin
-    with AsyncFreeSpecLike
+    extends AsyncFreeSpec
     with Matchers
     with ToFutureWrapper
     with BeforeAndAfterAll
@@ -77,12 +75,11 @@ abstract class StreamingTest[F[_], S]
   }
 
   "receive a stream" in {
-    // TODO: for some reason these explicit types are needed in Dotty
-    val r0: RequestT[Identity, String, Effect[F] with S] = basicRequest
+    basicRequest
       .post(uri"$endpoint/streaming/echo")
       .body(Body)
       .response(asStreamAlways(streams)(bodyConsumer(_)))
-    r0.send(backend)
+      .send(backend)
       .toFuture()
       .map { response =>
         response.body shouldBe Body
@@ -90,13 +87,12 @@ abstract class StreamingTest[F[_], S]
   }
 
   "receive a stream and ignore it (without consuming)" in {
-    // TODO: for some reason these explicit types are needed in Dotty
-    val r0: RequestT[Identity, String, Effect[F] with S] = basicRequest
+    basicRequest
       .post(uri"$endpoint/streaming/echo")
       .body(Body)
       // if the backend has any, mechanisms to consume an incorrectly handled (ignored) stream should kick in
       .response(asStreamAlways(streams)(_ => bodyConsumer(stringBodyProducer("ignore"))))
-    r0.send(backend)
+      .send(backend)
       .toFuture()
       .map { response =>
         response.body shouldBe "ignore"

@@ -13,7 +13,7 @@
 [sttp client](https://github.com/softwaremill/sttp) is an open-source library which provides a clean, programmer-friendly API to describe HTTP
 requests and how to handle responses. Requests are sent using one of the backends, which wrap other Scala or Java HTTP client implementations. The backends can integrate with a variety of Scala stacks, providing both synchronous and asynchronous, procedural and functional interfaces.
  
-Backend implementations include ones based on [akka-http](https://doc.akka.io/docs/akka-http/current/scala/http/), [async-http-client](https://github.com/AsyncHttpClient/async-http-client), [http4s](https://http4s.org), [OkHttp](http://square.github.io/okhttp/), and HTTP clients which ship with Java. They integrate with [Akka](https://akka.io), [Monix](https://monix.io), [fs2](https://github.com/functional-streams-for-scala/fs2), [cats-effect](https://github.com/typelevel/cats-effect), [scalaz](https://github.com/scalaz/scalaz) and [ZIO](https://github.com/zio/zio). Supported Scala versions include 2.11, 2.12, 2.13 and 3.
+Backend implementations include ones based on [akka-http](https://doc.akka.io/docs/akka-http/current/scala/http/), [async-http-client](https://github.com/AsyncHttpClient/async-http-client), [http4s](https://http4s.org), [OkHttp](http://square.github.io/okhttp/), and HTTP clients which ship with Java. They integrate with [Akka](https://akka.io), [Monix](https://monix.io), [fs2](https://github.com/functional-streams-for-scala/fs2), [cats-effect](https://github.com/typelevel/cats-effect), [scalaz](https://github.com/scalaz/scalaz) and [ZIO](https://github.com/zio/zio). Supported Scala versions include 2.11, 2.12, 2.13 and 3, Scala.JS and Scala Native.
 
 Here's a quick example of sttp client in action:
  
@@ -45,14 +45,14 @@ sttp (v2) documentation is available at [sttp.softwaremill.com/en/v2](http://stt
 
 sttp (v1) documentation is available at [sttp.softwaremill.com/en/v1](https://sttp.softwaremill.com/en/v1).
 
-scaladoc is available at [https://www.javadoc.io](https://www.javadoc.io/doc/com.softwaremill.sttp.client3/core_2.12/3.3.0-RC3)
+scaladoc is available at [https://www.javadoc.io](https://www.javadoc.io/doc/com.softwaremill.sttp.client3/core_2.12/3.3.10)
 
 ## Quickstart with Ammonite
 
 If you are an [Ammonite](http://ammonite.io) user, you can quickly start experimenting with sttp by copy-pasting the following:
 
 ```scala
-import $ivy.`com.softwaremill.sttp.client3::core:3.3.0-RC3`
+import $ivy.`com.softwaremill.sttp.client3::core:3.3.10`
 import sttp.client3.quick._
 quickRequest.get(uri"http://httpbin.org/ip").send(backend)
 ```
@@ -64,7 +64,7 @@ This brings in the sttp API and a synchronous backend instance.
 Add the following dependency:
 
 ```scala
-"com.softwaremill.sttp.client3" %% "core" % "3.3.0-RC3"
+"com.softwaremill.sttp.client3" %% "core" % "3.3.10"
 ```
 
 Then, import:
@@ -73,7 +73,7 @@ Then, import:
 import sttp.client3._
 ```
 
-Type `sttp.` and see where your IDE’s auto-complete gets you!
+Type `basicRequest.` and see where your IDE’s auto-complete gets you!
 
 ## Other sttp projects
 
@@ -98,7 +98,7 @@ The documentation is typechecked using [mdoc](https://scalameta.org/mdoc/). The 
 
 When generating documentation, it's best to set the version to the current one, so that the generated doc files don't include modifications with the current snapshot version. 
 
-That is, in sbt run: `set version := "3.3.0-RC3"`, before running `mdoc` in `docs`.
+That is, in sbt run: `set version := "3.3.10"`, before running `mdoc` in `docs`.
 
 ### Testing the Scala.JS backend
 

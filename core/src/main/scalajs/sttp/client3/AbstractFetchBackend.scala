@@ -85,14 +85,14 @@ abstract class AbstractFetchBackend[F[_], S <: Streams[S], P](
     }
 
     val rheaders = new JSHeaders()
-    request.headers.foreach { case header @ Header(name, value) =>
+    request.headers.foreach { header =>
       // for multipart/form-data requests dom.FormData is responsible for setting the Content-Type header
       // as it will also compute and set the boundary for the different parts, so we have to leave it out here
-      if (header.is(HeaderNames.ContentType) && value.toLowerCase.startsWith("multipart/")) {
-        if (!value.toLowerCase.startsWith(MediaType.MultipartFormData.toString))
+      if (header.is(HeaderNames.ContentType) && header.value.toLowerCase.startsWith("multipart/")) {
+        if (!header.value.toLowerCase.startsWith(MediaType.MultipartFormData.toString))
           throw new IllegalArgumentException("Multipart bodies other than multipart/form-data are not supported")
       } else {
-        rheaders.set(name, value)
+        rheaders.set(header.name, header.value)
       }
     }
 
@@ -218,8 +218,7 @@ abstract class AbstractFetchBackend[F[_], S <: Streams[S], P](
         b.toTypedArray.asInstanceOf[BodyInit]
 
       case ByteBufferBody(b, _) =>
-        if (b.isReadOnly) cloneByteBuffer(b).array().toTypedArray.asInstanceOf[BodyInit]
-        else b.array().toTypedArray.asInstanceOf[BodyInit]
+        byteBufferToArray(b).toTypedArray.asInstanceOf[BodyInit]
 
       case InputStreamBody(is, _) =>
         toByteArray(is).toTypedArray.asInstanceOf[BodyInit]
@@ -229,20 +228,11 @@ abstract class AbstractFetchBackend[F[_], S <: Streams[S], P](
     }
   }
 
-  // https://stackoverflow.com/questions/3366925/deep-copy-duplicate-of-javas-bytebuffer
-  private def cloneByteBuffer(original: ByteBuffer): ByteBuffer = {
-    val clone =
-      if (original.isDirect) ByteBuffer.allocateDirect(original.capacity)
-      else ByteBuffer.allocate(original.capacity)
-    val readOnlyCopy = original.asReadOnlyBuffer
-    readOnlyCopy.rewind
-    clone
-      .put(original)
-      .flip
-      .position(original.position)
-      .limit(original.limit)
-      .asInstanceOf[ByteBuffer]
-      .order(original.order)
+  // https://stackoverflow.com/questions/679298/gets-byte-array-from-a-bytebuffer-in-java
+  private def byteBufferToArray(bb: ByteBuffer): Array[Byte] = {
+    val b = new Array[Byte](bb.remaining())
+    bb.get(b)
+    b
   }
 
   private def sendWebSocket[T, R >: PE](request: Request[T, R]): F[Response[T]] = {

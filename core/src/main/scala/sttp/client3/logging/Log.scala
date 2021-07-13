@@ -1,8 +1,9 @@
 package sttp.client3.logging
 
-import sttp.client3.{Request, Response}
+import sttp.client3.{HttpError, Request, Response}
 import sttp.model.{HeaderNames, StatusCode}
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 
 /** Performs logging before requests are sent and after requests complete successfully or with an exception.
@@ -61,8 +62,22 @@ class DefaultLog[F[_]](
       }
     )
 
-  override def requestException(request: Request[_, _], elapsed: Option[Duration], e: Exception): F[Unit] =
-    logger(responseExceptionLogLevel, s"Exception when sending request: ${request.showBasic}${took(elapsed)}", e)
+  override def requestException(request: Request[_, _], elapsed: Option[Duration], e: Exception): F[Unit] = {
+    @tailrec def findHttpError(exception: Throwable): Option[HttpError[_]] =
+      Option(exception) match {
+        case Some(error: HttpError[_]) => Some(error)
+        case Some(_)                   => findHttpError(exception.getCause)
+        case None                      => Option.empty
+      }
+
+    val logLevel = findHttpError(e) match {
+      case Some(HttpError(_, statusCode)) =>
+        responseLogLevel(statusCode)
+      case _ =>
+        responseExceptionLogLevel
+    }
+    logger(logLevel, s"Exception when sending request: ${request.showBasic}${took(elapsed)}", e)
+  }
 
   private def took(elapsed: Option[Duration]): String = elapsed.fold("")(e => f", took: ${e.toMillis / 1000.0}%.3fs")
 }

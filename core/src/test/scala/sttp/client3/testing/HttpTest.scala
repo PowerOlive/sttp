@@ -1,7 +1,7 @@
 package sttp.client3.testing
 
 import org.scalatest._
-import org.scalatest.freespec.AsyncFreeSpecLike
+import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import sttp.client3.internal.{Iso88591, Utf8}
 import sttp.client3.testing.HttpTest.endpoint
@@ -13,16 +13,16 @@ import java.io.{ByteArrayInputStream, UnsupportedEncodingException}
 import java.nio.ByteBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.{Failure, Random, Success, Try}
 
-// TODO: change to `extends AsyncFreeSpec` when https://github.com/scalatest/scalatest/issues/1802 is fixed
 trait HttpTest[F[_]]
-    extends SuiteMixin
-    with AsyncFreeSpecLike
+    extends AsyncFreeSpec
     with BeforeAndAfterAll
     with Matchers
     with ToFutureWrapper
     with OptionValues
-    with HttpTestExtensions[F] {
+    with HttpTestExtensions[F]
+    with AsyncRetries {
 
   protected val binaryFileMD5Hash = "565370873a38d91f34a3091082e63933"
   protected val textFileMD5Hash = "b048a88ece8e4ec5eb386b8fc5006d13"
@@ -205,6 +205,21 @@ trait HttpTest[F[_]]
         .send(backend)
         .toFuture()
         .map { response => response.body should be(Right(expectedPostEchoResponse)) }
+    }
+
+    "post a byte buffer with a capacity higher than the limit" in {
+      val b = ByteBuffer.allocate(100)
+      b.put(testBodyBytes)
+      b.flip()
+
+      postEcho
+        .body(b)
+        .response(asByteArrayAlways)
+        .send(backend)
+        .toFuture()
+        .map { response =>
+          response.body shouldBe expectedPostEchoResponse.getBytes("UTF-8")
+        }
     }
 
     "post a readonly byte buffer" in {
@@ -561,12 +576,16 @@ trait HttpTest[F[_]]
       }
 
       "connection exceptions - connection refused" in {
-        val req = basicRequest
-          .get(uri"http://localhost:1234")
-          .response(asString)
+        retry(10) {
+          val portToTry = Random.nextInt(2048) + 49152
+          val req = basicRequest
+            .get(uri"http://localhost:$portToTry")
+            .response(asString)
 
-        Future(req.send(backend)).flatMap(_.toFuture()).failed.map { e =>
-          e shouldBe a[SttpClientException.ConnectException]
+          Future(req.send(backend)).flatMap(_.toFuture()).failed.map { e =>
+            info(s"Sending request using port $portToTry failed", Some(e))
+            e shouldBe a[SttpClientException.ConnectException]
+          }
         }
       }
 
@@ -624,6 +643,18 @@ trait HttpTest[F[_]]
   override protected def afterAll(): Unit = {
     backend.close().toFuture()
     super.afterAll()
+  }
+
+  private def retry[T](n: Int)(f: => Future[T]): Future[T] = {
+    Try(f) match {
+      case Failure(exception) => if (n == 0) Future.failed(exception) else retry(n - 1)(f)
+      case Success(value) =>
+        value.recoverWith {
+          case e if n > 0 =>
+            info(s"Failed with: ${e.getMessage}, retrying ($n).", Some(e))
+            retry(n - 1)(f)
+        }
+    }
   }
 }
 

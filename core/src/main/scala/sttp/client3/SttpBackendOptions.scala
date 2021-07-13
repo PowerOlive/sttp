@@ -36,7 +36,8 @@ object SttpBackendOptions {
       port: Int,
       proxyType: ProxyType,
       nonProxyHosts: List[String] = Nil,
-      auth: Option[ProxyAuth] = None
+      auth: Option[ProxyAuth] = None,
+      onlyProxyHosts: List[String] = Nil
   ) {
     //only matches prefix or suffix wild card(*)
     private def isWildCardMatch(targetHost: String, nonProxyHost: String): Boolean = {
@@ -59,9 +60,14 @@ object SttpBackendOptions {
       }
     }
 
-    def ignoreProxy(host: String): Boolean = {
+    def ignoreProxy(host: String): Boolean =
+      matchesNonProxyHost(host) || doesNotMatchAnyHostToProxy(host)
+
+    private def matchesNonProxyHost(host: String) =
       nonProxyHosts.exists(isWildCardMatch(host, _))
-    }
+
+    private def doesNotMatchAnyHostToProxy(host: String) =
+      onlyProxyHosts != Nil && !onlyProxyHosts.exists(isWildCardMatch(host, _))
 
     def asJavaProxySelector: net.ProxySelector =
       new net.ProxySelector {
@@ -77,7 +83,10 @@ object SttpBackendOptions {
         }
 
         override def connectFailed(uri: net.URI, sa: SocketAddress, ioe: IOException): Unit = {
-          throw new UnsupportedOperationException("Couldn't connect to the proxy server.")
+          throw new UnsupportedOperationException(
+            s"Couldn't connect to the proxy server, uri: $uri, socket: $sa",
+            ioe
+          )
         }
       }
     def asJavaProxy = new java.net.Proxy(proxyType.asJava, inetSocketAddress)

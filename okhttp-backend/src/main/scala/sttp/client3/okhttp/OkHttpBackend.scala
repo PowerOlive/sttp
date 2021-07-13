@@ -65,10 +65,7 @@ abstract class OkHttpBackend[F[_], S <: Streams[S], P](
       }
     )
 
-    request.headers
-      .foreach { case Header(name, value) =>
-        builder.addHeader(name, value)
-      }
+    request.headers.foreach { header => builder.addHeader(header.name, header.value) }
 
     builder.build()
   }
@@ -147,7 +144,7 @@ object OkHttpBackend {
 
     clientBuilder = options.proxy match {
       case None => clientBuilder
-      case Some(p @ Proxy(_, _, _, _, Some(auth))) =>
+      case Some(p @ Proxy(_, _, _, _, Some(auth), _)) =>
         clientBuilder.proxySelector(p.asJavaProxySelector).proxyAuthenticator(new ProxyAuthenticator(auth))
       case Some(p) => clientBuilder.proxySelector(p.asJavaProxySelector)
     }
